@@ -87,3 +87,12 @@ Route::get('/dashboard', function () {
     if ($user->hasRole('validateur')) return redirect()->route('validateur.dashboard');
     return redirect()->route('usager.dashboard');
 })->middleware('auth')->name('dashboard');
+
+// ===================== PROFIL VALIDATEUR =====================
+Route::middleware(['auth', 'role:validateur|admin', 'user.actif', '2fa'])->prefix('validateur')->name('validateur.')->group(function () {
+    Route::get('/profil',                   [\App\Http\Controllers\Validateur\ProfilValidateurController::class, 'index'])->name('profil');
+    Route::put('/profil/identifiants',      [\App\Http\Controllers\Validateur\ProfilValidateurController::class, 'updateIdentifiants'])->name('profil.identifiants');
+    Route::put('/profil/password',          [\App\Http\Controllers\Validateur\ProfilValidateurController::class, 'updateMotDePasse'])->name('profil.password');
+    Route::put('/profil/signature',         [\App\Http\Controllers\Validateur\ProfilValidateurController::class, 'updateSignature'])->name('profil.signature');
+    Route::delete('/profil/signature',      [\App\Http\Controllers\Validateur\ProfilValidateurController::class, 'supprimerSignature'])->name('profil.signature.supprimer');
+});

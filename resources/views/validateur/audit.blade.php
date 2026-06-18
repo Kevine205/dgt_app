@@ -1,88 +1,109 @@
 @extends('layouts.app')
 @section('title', 'Journal d\'audit — Validateur')
-@section('sidebar-color', 'bg-slate-800')
-@section('page-title', 'Mon Journal d\'Audit')
-@section('page-subtitle', 'Historique et traçabilité des actions effectuées sur l\'espace de validation')
+@section('sidebar-color', 'bg-amber-800')
+@section('page-title', 'Journal d\'audit')
+@section('page-subtitle', 'Historique de vos actions de validation')
 
 @section('sidebar-nav')
-    {{-- On garde la structure de navigation cohérente pour le validateur --}}
-    <a href="{{ route('validateur.dashboard') }}" class="sidebar-link {{ request()->routeIs('validateur.dashboard') ? 'active' : '' }}">
-        <i class="fas fa-stamp w-4"></i> Tableau de bord
-    </a>
-    <a href="{{ route('validateur.audit') }}" class="sidebar-link {{ request()->routeIs('validateur.audit') ? 'active' : '' }}">
-        <i class="fas fa-shield-alt w-4"></i> Journal d'audit
-    </a>
-    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-white/40 uppercase tracking-wider">Retour</div>
-    <a href="{{ route('admin.dashboard') }}" class="sidebar-link">
-        <i class="fas fa-arrow-left w-4"></i> Vue Administration
-    </a>
+    <a href="{{ route('validateur.dashboard') }}" class="sidebar-link"><i class="fas fa-arrow-left w-4"></i> Tableau de bord</a>
+    <a href="{{ route('validateur.dossiers.index') }}" class="sidebar-link"><i class="fas fa-folder w-4"></i> Dossiers</a>
+    <a href="{{ route('validateur.audit') }}" class="sidebar-link active"><i class="fas fa-list w-4"></i> Journal d'audit</a>
+    <a href="{{ route('validateur.profil') }}" class="sidebar-link"><i class="fas fa-user w-4"></i> Mon profil</a>
 @endsection
 
 @section('content')
-<!-- INFORMATIONS DE SÉCURITÉ -->
-<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex gap-3 items-start">
-    <i class="fas fa-info-circle text-amber-600 mt-0.5 text-sm"></i>
-    <div class="text-xs text-amber-800 leading-relaxed">
-        <strong>Principe de transparence :</strong> Conformément à la politique de sécurité de la DGT, toutes les actions critiques (visas, rejets, modifications de dossiers) sont enregistrées de manière immuable à des fins de conformité légale.
+
+<!-- INFO -->
+<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+    <i class="fas fa-info-circle text-amber-600 text-lg"></i>
+    <div class="text-sm text-amber-800">
+        <strong>Transparence et responsabilité :</strong> Toutes vos actions sont enregistrées horodatées. Ce journal garantit l'intégrité des décisions prises sur chaque dossier.
     </div>
 </div>
 
-<!-- TABLEAU LOGS D'AUDIT VALIDATEUR -->
+<!-- FILTRES -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+    <form method="GET" class="flex flex-wrap gap-4 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Action</label>
+            <select name="action" class="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <option value="">Toutes</option>
+                @foreach(['VISA_APPOSE','DOSSIER_REJETE','CORRECTION_DEMANDEE','ENTRETIEN_DECLENCHE','ENTRETIEN_VALIDE','ARBITRAGE_PROLONGATION','ARBITRAGE_ANNULATION','ARBITRAGE_REJET','DOSSIER_PRIS_EN_CHARGE'] as $action)
+                    <option value="{{ $action }}" {{ request('action') === $action ? 'selected' : '' }}>{{ $action }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" name="date" value="{{ request('date') }}"
+                class="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+        <button type="submit" class="px-6 py-2.5 bg-amber-700 text-white rounded-xl text-sm font-medium hover:bg-amber-800 transition">
+            <i class="fas fa-search mr-1"></i> Filtrer
+        </button>
+        @if(request()->hasAny(['action', 'date']))
+        <a href="{{ route('validateur.audit') }}" class="px-4 py-2.5 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+            Réinitialiser
+        </a>
+        @endif
+    </form>
+</div>
+
+<!-- TABLEAU -->
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-50 border-b border-gray-100">
-                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Heure</th>
-                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acteur</th>
-                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Type d'action</th>
-                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Adresse IP</th>
-                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description de l'action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                @forelse($audits ?? $journalAudits as $audit)
-                    <tr class="hover:bg-gray-50/70 transition">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $audit->created_at->format('d/m/Y H:i:s') }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $audit->user->nom ?? 'Système' }} {{ $audit->user->prenom ?? '' }}</div>
-                            <div class="text-xs text-gray-400">{{ $audit->user->email ?? 'N/A' }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium 
-                                {{ str_contains($audit->action, 'suppression') || str_contains($audit->action, 'delete') || str_contains($audit->action, 'rejete') ? 'bg-red-50 text-red-700' : '' }}
-                                {{ str_contains($audit->action, 'creation') || str_contains($audit->action, 'store') || str_contains($audit->action, 'vise') ? 'bg-green-50 text-green-700' : '' }}
-                                {{ str_contains($audit->action, 'modification') || str_contains($audit->action, 'update') ? 'bg-blue-50 text-blue-700' : '' }}
-                                {{ !str_contains($audit->action, 'suppression') && !str_contains($audit->action, 'delete') && !str_contains($audit->action, 'creation') && !str_contains($audit->action, 'store') && !str_contains($audit->action, 'modification') && !str_contains($audit->action, 'update') && !str_contains($audit->action, 'vise') && !str_contains($audit->action, 'rejete') ? 'bg-slate-100 text-slate-700' : '' }}
-                            ">
-                                {{ ucfirst(str_replace('_', ' ', $audit->action)) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                            {{ $audit->ip_address ?? $audit->ip ?? '127.0.0.1' }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600 max-w-sm truncate" title="{{ $audit->details ?? $audit->description }}">
-                            {{ $audit->details ?? $audit->description ?? 'Aucun détail fourni.' }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
-                            <i class="fas fa-history text-gray-300 text-2xl mb-2 block"></i>
-                            Aucune trace enregistrée pour le moment.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="p-5 border-b border-gray-100">
+        <h2 class="font-semibold text-gray-900">{{ $audits->total() }} entrée(s)</h2>
     </div>
 
-    <!-- PAGINATION (S'il y en a une configurée dans le contrôleur) -->
-    @if(method_exists($audits ?? $journalAudits, 'links'))
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
-            {{ ($audits ?? $journalAudits)->appends(request()->query())->links() }}
+    @if($audits->isEmpty())
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-list text-gray-400 text-2xl"></i>
+            </div>
+            <p class="text-gray-500">Aucune entrée dans le journal.</p>
+        </div>
+    @else
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Horodatage</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">IP</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($audits as $audit)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
+                            {{ $audit->created_at->format('d/m/Y H:i:s') }}
+                        </td>
+                        <td class="px-6 py-4">
+                            @php
+                                $colors = [
+                                    'VISA_APPOSE' => 'bg-green-100 text-green-800',
+                                    'DOSSIER_REJETE' => 'bg-red-100 text-red-800',
+                                    'CORRECTION_DEMANDEE' => 'bg-orange-100 text-orange-800',
+                                    'ENTRETIEN_DECLENCHE' => 'bg-purple-100 text-purple-800',
+                                    'ENTRETIEN_VALIDE' => 'bg-blue-100 text-blue-800',
+                                    'DOSSIER_PRIS_EN_CHARGE' => 'bg-sky-100 text-sky-800',
+                                ];
+                                $color = $colors[$audit->action] ?? 'bg-gray-100 text-gray-700';
+                            @endphp
+                            <span class="px-2 py-1 rounded-full text-xs font-medium {{ $color }}">
+                                {{ $audit->action }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-700">{{ $audit->description }}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-gray-500">{{ $audit->adresse_ip ?? '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t border-gray-100">
+            {{ $audits->links() }}
         </div>
     @endif
 </div>

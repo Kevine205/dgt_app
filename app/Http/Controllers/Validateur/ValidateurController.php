@@ -113,27 +113,34 @@ class ValidateurController extends Controller
 
     // ── Actions visa ──────────────────────────────────────────────
 
-    public function apposerVisa(Dossier $dossier)
-    {
-        if (!in_array($dossier->statut, ['en_cours', 'entretien_requis'])) {
-            return back()->with('error', 'Ce dossier ne peut pas être visé dans son état actuel.');
-        }
-
-        $cheminPdf = $this->pdfService->genererContratVise($dossier);
-
-        $dossier->update([
-            'statut'              => 'vise',
-            'validateur_id'       => auth()->id(),
-            'date_visa'           => now(),
-            'chemin_contrat_vise' => $cheminPdf,
-        ]);
-
-        JournalAudit::enregistrer('VISA_APPOSE', "Visa apposé sur {$dossier->numero_suivi}", $dossier);
-        $dossier->user->notify(new DossierViseNotification($dossier));
-
-        return redirect()->route('validateur.dossiers.show', $dossier)
-            ->with('success', "Visa apposé. L'usager peut télécharger son contrat.");
+   public function apposerVisa(Dossier $dossier)
+{
+    if (!in_array($dossier->statut, ['en_cours', 'entretien_requis'])) {
+        return back()->with('error', 'Ce dossier ne peut pas être visé dans son état actuel.');
     }
+
+    // Mettre à jour d'abord pour que date_visa soit disponible dans le PDF
+    $dossier->update([
+        'statut'        => 'vise',
+        'validateur_id' => auth()->id(),
+        'date_visa'     => now(),
+    ]);
+
+    // Recharger le dossier avec la date_visa à jour
+    $dossier->refresh();
+
+    // Générer le PDF avec la signature
+    $cheminPdf = $this->pdfService->genererContratVise($dossier);
+
+    // Enregistrer le chemin du PDF
+    $dossier->update(['chemin_contrat_vise' => $cheminPdf]);
+
+    JournalAudit::enregistrer('VISA_APPOSE', "Visa apposé sur {$dossier->numero_suivi}", $dossier);
+    $dossier->user->notify(new DossierViseNotification($dossier));
+
+    return redirect()->route('validateur.dossiers.show', $dossier)
+        ->with('success', "Visa apposé. L'usager peut télécharger son contrat.");
+}
 
     public function rejeter(Request $request, Dossier $dossier)
     {

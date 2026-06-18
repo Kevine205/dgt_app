@@ -26,6 +26,7 @@
             <span class="ml-auto bg-purple-500 text-white text-xs rounded-full px-2 py-0.5">{{ $stats['entretiens'] }}</span>
         @endif
     </a>
+    <a href="{{ route('validateur.profil') }}" class="sidebar-link {{ request()->routeIs('validateur.profil') ? 'active' : '' }}"><i class="fas fa-user w-4"></i> Mon profil</a>
     <a href="{{ route('validateur.audit') }}" class="sidebar-link">
         <i class="fas fa-list w-4"></i> Journal d'audit
     </a>
