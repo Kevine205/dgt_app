@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Validateur;
+
 use App\Http\Controllers\Controller;
 use App\Models\Dossier;
 use App\Models\Entretien;
@@ -113,34 +114,41 @@ class ValidateurController extends Controller
 
     // ── Actions visa ──────────────────────────────────────────────
 
-   public function apposerVisa(Dossier $dossier)
-{
-    if (!in_array($dossier->statut, ['en_cours', 'entretien_requis'])) {
-        return back()->with('error', 'Ce dossier ne peut pas être visé dans son état actuel.');
+    public function apposerVisa(Dossier $dossier)
+    {
+        if (!in_array($dossier->statut, ['en_cours', 'entretien_requis'])) {
+            return back()->with('error', 'Ce dossier ne peut pas être visé dans son état actuel.');
+        }
+
+        $validateur = auth()->user();
+
+        // Vérifier que le validateur a configuré sa signature électronique
+        if (!$validateur->signature_electronique) {
+            return back()->with('error', 'Vous devez d\'abord enregistrer votre signature électronique dans "Mon profil" avant de pouvoir viser un dossier.');
+        }
+
+        // 1. Sauvegarder d'abord le statut, le validateur et la date
+        $dossier->update([
+            'statut'        => 'vise',
+            'validateur_id' => $validateur->id,
+            'date_visa'     => now(),
+        ]);
+
+        // 2. Recharger le dossier pour avoir les données fraîches (avec validateur_id et date_visa)
+        $dossier->refresh();
+
+        // 3. Générer le PDF avec la signature du validateur déjà rattachée
+        $cheminPdf = $this->pdfService->genererContratVise($dossier);
+
+        // 4. Enregistrer le chemin du PDF généré
+        $dossier->update(['chemin_contrat_vise' => $cheminPdf]);
+
+        JournalAudit::enregistrer('VISA_APPOSE', "Visa apposé sur {$dossier->numero_suivi} avec signature électronique", $dossier);
+        $dossier->user->notify(new DossierViseNotification($dossier));
+
+        return redirect()->route('validateur.dossiers.show', $dossier)
+            ->with('success', "Visa apposé avec votre signature électronique. L'usager peut télécharger son contrat.");
     }
-
-    // Mettre à jour d'abord pour que date_visa soit disponible dans le PDF
-    $dossier->update([
-        'statut'        => 'vise',
-        'validateur_id' => auth()->id(),
-        'date_visa'     => now(),
-    ]);
-
-    // Recharger le dossier avec la date_visa à jour
-    $dossier->refresh();
-
-    // Générer le PDF avec la signature
-    $cheminPdf = $this->pdfService->genererContratVise($dossier);
-
-    // Enregistrer le chemin du PDF
-    $dossier->update(['chemin_contrat_vise' => $cheminPdf]);
-
-    JournalAudit::enregistrer('VISA_APPOSE', "Visa apposé sur {$dossier->numero_suivi}", $dossier);
-    $dossier->user->notify(new DossierViseNotification($dossier));
-
-    return redirect()->route('validateur.dossiers.show', $dossier)
-        ->with('success', "Visa apposé. L'usager peut télécharger son contrat.");
-}
 
     public function rejeter(Request $request, Dossier $dossier)
     {

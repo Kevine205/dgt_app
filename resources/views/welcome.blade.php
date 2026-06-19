@@ -13,8 +13,14 @@
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                <i class="fas fa-file-contract text-white text-sm"></i>
+            <div class="w-11 h-11 bg-white rounded-full flex items-center justify-center border border-gray-200">
+                <svg width="26" height="26" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#166534" stroke-width="4"/>
+                    <path d="M30 65 L30 35 L42 35 Q55 35 55 47 Q55 58 42 58 L36 58 L36 65 Z M36 41 L36 52 L42 52 Q49 52 49 47 Q49 41 42 41 Z" fill="#166534"/>
+                    <path d="M60 35 L72 35 Q78 35 78 41 Q78 45 74 47 Q79 49 79 54 Q79 65 67 65 L60 65 Z M66 41 L66 47 L71 47 Q73 47 73 44 Q73 41 71 41 Z M66 53 L66 59 L67 59 Q73 59 73 56 Q73 53 67 53 Z" fill="#166534"/>
+                    <line x1="50" y1="20" x2="50" y2="28" stroke="#166534" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="50" cy="16" r="3" fill="#166534"/>
+                </svg>
             </div>
             <div>
                 <div class="font-bold text-gray-900 text-sm">DGT Bénin</div>

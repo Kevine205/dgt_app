@@ -7,6 +7,8 @@
 @section('sidebar-nav')
     <a href="{{ route('validateur.dashboard') }}" class="sidebar-link"><i class="fas fa-arrow-left w-4"></i> Tableau de bord</a>
     <a href="{{ route('validateur.dossiers.index') }}" class="sidebar-link"><i class="fas fa-folder w-4"></i> Tous les dossiers</a>
+    <a href="{{ route('validateur.profil') }}" class="sidebar-link"><i class="fas fa-user w-4"></i> Mon profil</a>
+    <a href="{{ route('validateur.audit') }}" class="sidebar-link"><i class="fas fa-list w-4"></i> Journal d'audit</a>
 @endsection
 
 @section('content')
@@ -61,6 +63,18 @@
             <p class="text-gray-400 text-sm">Aucune pièce jointe.</p>
             @endforelse
         </div>
+
+        @if($dossier->statut === 'vise' && $dossier->chemin_contrat_vise)
+        <div class="bg-green-50 border border-green-200 rounded-2xl p-6">
+            <h3 class="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-check-circle"></i> Contrat visé
+            </h3>
+            <p class="text-sm text-green-700 mb-3">
+                Ce dossier a été visé le {{ $dossier->date_visa->format('d/m/Y à H:i') }}
+                @if($dossier->validateur) par {{ $dossier->validateur->nom_complet }} @endif
+            </p>
+        </div>
+        @endif
 
         @if($dossier->audits->count() > 0)
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -141,17 +155,35 @@
         </div>
         @endif
 
+        <!-- APPOSER VISA AVEC SIGNATURE -->
         @if($dossier->statut === 'en_cours')
         <div class="bg-green-50 border border-green-200 rounded-2xl p-5">
             <h4 class="font-semibold text-green-900 mb-2">Apposer le visa</h4>
-            <p class="text-sm text-green-700 mb-4">Le dossier est conforme. Apposer le visa officiel.</p>
-            <form method="POST" action="{{ route('validateur.dossiers.visa', $dossier) }}"
-                onsubmit="return confirm('Confirmer le visa de ce dossier ?')">
-                @csrf
-                <button type="submit" class="w-full py-2.5 bg-green-700 text-white rounded-xl text-sm font-semibold hover:bg-green-800 transition">
-                    <i class="fas fa-stamp mr-2"></i>Apposer le visa
-                </button>
-            </form>
+
+            @if(auth()->user()->signature_electronique)
+                <div class="flex items-center gap-2 mb-3 p-2 bg-white rounded-lg border border-green-200">
+                    <img src="{{ auth()->user()->signature_electronique }}" alt="Votre signature" class="h-10">
+                    <span class="text-xs text-green-700"><i class="fas fa-check-circle mr-1"></i>Signature prête</span>
+                </div>
+                <p class="text-sm text-green-700 mb-4">Le dossier est conforme. Votre signature sera apposée automatiquement sur le contrat visé.</p>
+                <form method="POST" action="{{ route('validateur.dossiers.visa', $dossier) }}"
+                    onsubmit="return confirm('Confirmer le visa de ce dossier avec votre signature électronique ?')">
+                    @csrf
+                    <button type="submit" class="w-full py-2.5 bg-green-700 text-white rounded-xl text-sm font-semibold hover:bg-green-800 transition">
+                        <i class="fas fa-stamp mr-2"></i>Apposer le visa
+                    </button>
+                </form>
+            @else
+                <div class="flex items-start gap-2 mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <i class="fas fa-exclamation-triangle text-orange-500 mt-0.5"></i>
+                    <p class="text-xs text-orange-700">
+                        Vous devez d'abord configurer votre signature électronique avant de pouvoir viser un dossier.
+                    </p>
+                </div>
+                <a href="{{ route('validateur.profil') }}" class="block w-full py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 transition text-center">
+                    <i class="fas fa-pen-nib mr-2"></i>Configurer ma signature
+                </a>
+            @endif
         </div>
         @endif
 
@@ -204,6 +236,17 @@
                     <i class="fas fa-times mr-2"></i>Rejeter
                 </button>
             </form>
+        </div>
+        @endif
+
+        @if($dossier->entretien && $dossier->statut === 'entretien_requis')
+        <div class="bg-purple-50 border border-purple-200 rounded-2xl p-5">
+            <h4 class="font-semibold text-purple-900 mb-3"><i class="fas fa-calendar-check mr-2"></i>Entretien programmé</h4>
+            <dl class="text-sm space-y-2">
+                <div><dt class="text-xs text-purple-600">Motif</dt><dd class="text-purple-900">{{ $dossier->entretien->motif_convocation }}</dd></div>
+                <div><dt class="text-xs text-purple-600">Date limite</dt><dd class="font-semibold text-purple-900">{{ $dossier->entretien->date_limite->format('d/m/Y') }}</dd></div>
+                <div><dt class="text-xs text-purple-600">Jours restants</dt><dd class="font-semibold text-purple-900">{{ $dossier->entretien->joursRestants() }} jour(s)</dd></div>
+            </dl>
         </div>
         @endif
 

@@ -6,7 +6,8 @@
 
 @section('sidebar-nav')
     <a href="{{ route('validateur.dashboard') }}" class="sidebar-link"><i class="fas fa-arrow-left w-4"></i> Tableau de bord</a>
-    <a href="{{ route('validateur.dossiers.index') }}" class="sidebar-link active"><i class="fas fa-folder w-4"></i> Tous les dossiers</a>
+    <a href="{{ route('validateur.dossiers.index') }}" class="sidebar-link"><i class="fas fa-folder w-4"></i> Tous les dossiers</a>
+    <a href="{{ route('validateur.profil') }}" class="sidebar-link"><i class="fas fa-user w-4"></i> Mon profil</a>
     <a href="{{ route('validateur.audit') }}" class="sidebar-link"><i class="fas fa-list w-4"></i> Journal d'audit</a>
 @endsection
 
